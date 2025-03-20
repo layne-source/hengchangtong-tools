@@ -446,7 +446,7 @@ class PDFToolbox:
     def merge_pdfs(self):
         """合并PDF文件"""
         if len(self.pdf_files) < 2:
-            messagebox.showwarning("警告", "请至少添加两个PDF文件进行合并")
+            self.show_message("warning", "警告", "请至少添加两个PDF文件进行合并")
             return
         
         output_file = filedialog.asksaveasfilename(
@@ -491,17 +491,17 @@ class PDFToolbox:
             self.merge_progress_var.set(100)
             self.root.update()
             
-            messagebox.showinfo("成功", f"PDF文件已成功合并并保存到:\n{output_file}")
+            self.show_message("info", "成功", f"PDF文件已成功合并并保存到:\n{output_file}")
             
             # 重置进度条
             self.merge_progress_var.set(0)
             
         except FileNotFoundError as e:
-            messagebox.showerror("错误", str(e))
+            self.show_message("error", "错误", str(e))
             # 重置进度条
             self.merge_progress_var.set(0)
         except Exception as e:
-            messagebox.showerror("错误", f"合并PDF时出错:\n{str(e)}")
+            self.show_message("error", "错误", f"合并PDF时出错:\n{str(e)}")
             # 重置进度条
             self.merge_progress_var.set(0)
     
@@ -633,7 +633,7 @@ class PDFToolbox:
     def split_pdf(self):
         """执行PDF拆分操作"""
         if not self.split_file_path.get():
-            messagebox.showwarning("警告", "请先选择要拆分的PDF文件")
+            self.show_message("warning", "警告", "请先选择要拆分的PDF文件")
             return
             
         # 选择输出目录
@@ -656,7 +656,7 @@ class PDFToolbox:
                 # 按页码范围拆分
                 ranges = self.parse_page_ranges(self.range_entry.get(), total_pages)
                 if not ranges:
-                    messagebox.showerror("错误", "页码范围格式无效")
+                    self.show_message("error", "错误", "页码范围格式无效")
                     return
                     
                 total_parts = len(ranges)
@@ -681,7 +681,7 @@ class PDFToolbox:
                     if interval <= 0:
                         raise ValueError
                 except ValueError:
-                    messagebox.showerror("错误", "请输入有效的页数")
+                    self.show_message("error", "错误", "请输入有效的页数")
                     return
                 
                 current_page = 0
@@ -703,13 +703,13 @@ class PDFToolbox:
                     self.progress_var.set((file_number/total_parts) * 100)
                     self.root.update()
             
-            messagebox.showinfo("成功", "PDF文件拆分完成！")
+            self.show_message("info", "成功", "PDF文件拆分完成！")
             self.progress_var.set(0)
             
         except FileNotFoundError as e:
-            messagebox.showerror("错误", str(e))
+            self.show_message("error", "错误", str(e))
         except Exception as e:
-            messagebox.showerror("错误", f"拆分PDF时出错:\n{str(e)}")
+            self.show_message("error", "错误", f"拆分PDF时出错:\n{str(e)}")
             self.progress_var.set(0)
             
     def parse_page_ranges(self, range_str, total_pages):
@@ -821,7 +821,7 @@ class PDFToolbox:
     def convert_video_to_frames(self):
         """将视频转换为帧图片"""
         if not self.video_file_path.get():
-            messagebox.showwarning("警告", "请先选择视频文件")
+            self.show_message("warning", "警告", "请先选择视频文件")
             return
             
         # 选择输出目录
@@ -859,15 +859,15 @@ class PDFToolbox:
             self.show_video_settings(input_file, output_dir, fps, frame_count, duration)
             
         except ImportError as e:
-            messagebox.showerror("缺少依赖", str(e))
+            self.show_message("error", "缺少依赖", str(e))
         except FileNotFoundError as e:
-            messagebox.showerror("文件错误", str(e))
+            self.show_message("error", "文件错误", str(e))
         except Exception as e:
             # 只有不是用户取消操作才显示错误对话框
             if str(e) != "用户取消了操作":
                 error_message = f"处理视频时出错:\n{str(e)}\n{traceback.format_exc()}"
                 print(error_message)
-                messagebox.showerror("错误", error_message)
+                self.show_message("error", "错误", error_message)
             else:
                 print("用户取消了操作")
     
@@ -1009,7 +1009,7 @@ class PDFToolbox:
                     raise ValueError("分辨率必须为正整数")
                     
             except ValueError as e:
-                messagebox.showerror("参数错误", f"分辨率设置无效: {str(e)}")
+                self.show_message("error", "参数错误", f"分辨率设置无效: {str(e)}")
                 return
             
             # 获取动画转换选项
@@ -1207,7 +1207,8 @@ class PDFToolbox:
                             shutil.rmtree(part1_dir)
                         
                         # 提示完成
-                        messagebox.showinfo(
+                        self.show_message(
+                            "info", 
                             "完成", 
                             f"视频转换完成！\n已创建安卓开机动画文件：\n"
                             f"- bootanimation_customer.zip ({width}x{height}, {frame_rate_param}fps)\n"
@@ -1217,10 +1218,11 @@ class PDFToolbox:
                         # 如果压缩出错，至少保留已创建的文件结构
                         error_message = f"创建压缩文件时出错: {str(zip_error)}\n原始文件结构已保留。"
                         print(error_message)
-                        messagebox.showerror("错误", error_message)
+                        self.show_message("error", "错误", error_message)
                         
                         # 原来的成功信息仍然显示
-                        messagebox.showinfo(
+                        self.show_message(
+                            "info", 
                             "完成", 
                             f"视频转换完成！\n已创建帧动画文件结构：\n"
                             f"- part0：包含全部 {saved_count} 帧图片\n"
@@ -1231,21 +1233,21 @@ class PDFToolbox:
                     # 如果创建帧动画结构时出错，至少保留已提取的图片
                     error_message = f"创建帧动画文件结构时出错: {str(e)}\n原始图片已保留在输出目录中。"
                     print(error_message)
-                    messagebox.showerror("错误", error_message)
+                    self.show_message("error", "错误", error_message)
             else:
                 # 标准模式，直接提示完成
-                messagebox.showinfo("完成", f"视频转换完成！\n已保存 {saved_count} 帧图片到: {output_dir}")
+                self.show_message("info", "完成", f"视频转换完成！\n已保存 {saved_count} 帧图片到: {output_dir}")
             
         except ImportError as e:
-            messagebox.showerror("缺少依赖", str(e))
+            self.show_message("error", "缺少依赖", str(e))
         except FileNotFoundError as e:
-            messagebox.showerror("文件错误", str(e))
+            self.show_message("error", "文件错误", str(e))
         except Exception as e:
             # 只有不是用户取消操作才显示错误对话框
             if str(e) != "用户取消了操作":
                 error_message = f"转换过程中出错:\n{str(e)}\n{traceback.format_exc()}"
                 print(error_message)
-                messagebox.showerror("错误", error_message)
+                self.show_message("error", "错误", error_message)
             else:
                 print("用户取消了操作")
         finally:
@@ -1340,7 +1342,7 @@ class PDFToolbox:
     def convert_pdf_to_word(self):
         """将PDF转换为Word"""
         if not self.pdf_to_word_path.get():
-            messagebox.showwarning("警告", "请先选择PDF文件")
+            self.show_message("warning", "警告", "请先选择PDF文件")
             return
             
         output_file = filedialog.asksaveasfilename(
@@ -1406,14 +1408,14 @@ class PDFToolbox:
             if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
                 self.progress_var.set(100)
                 self.progress_label.config(text="转换完成！")
-                messagebox.showinfo("成功", "PDF文件已成功转换为Word！")
+                self.show_message("info", "成功", "PDF文件已成功转换为Word！")
             else:
                 raise Exception("转换后的文件无效或为空")
             
         except FileNotFoundError as e:
-            messagebox.showerror("错误", str(e))
+            self.show_message("error", "错误", str(e))
         except Exception as e:
-            messagebox.showerror("错误", f"转换过程中出错:\n{str(e)}")
+            self.show_message("error", "错误", f"转换过程中出错:\n{str(e)}")
         finally:
             # 重置进度条
             self.progress_var.set(0)
@@ -1437,6 +1439,88 @@ class PDFToolbox:
             except:
                 pass
     
+    # 添加居中显示消息框的辅助方法
+    def show_message(self, type_="info", title="", message=""):
+        """显示居中于主窗口的消息框
+        
+        Args:
+            type_: 消息框类型，可选值为 'info', 'warning', 'error'
+            title: 消息框标题
+            message: 消息框内容
+        """
+        # 创建自定义消息框
+        dialog = tk.Toplevel(self.root)
+        dialog.title(title)
+        dialog.transient(self.root)  # 设置为主窗口的临时窗口
+        dialog.grab_set()  # 模态窗口
+        
+        # 使用系统默认背景色
+        bg_color = dialog.cget("bg")
+        
+        # 创建内容框架
+        frame = tk.Frame(dialog, padx=20, pady=20, bg=bg_color)
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 消息文本 - 使其更接近原生messagebox的文本外观
+        msg_label = tk.Label(
+            frame,
+            text=message,
+            justify=tk.CENTER,  # 文本居中对齐
+            anchor=tk.CENTER,   # 标签内容居中
+            wraplength=350,     # 适当的换行宽度
+            font=(self.default_font, 10),  # 标准系统字体大小
+            bg=bg_color
+        )
+        msg_label.pack(fill=tk.BOTH, expand=True, pady=(5, 15))  # 调整上下边距
+        
+        # 按钮框架 - 居中
+        button_frame = tk.Frame(frame, bg=bg_color)
+        button_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        # 美化按钮，使其看起来像原生messagebox按钮
+        ok_button = ttk.Button(
+            button_frame,
+            text="确定",
+            width=10,
+            command=dialog.destroy
+        )
+        ok_button.pack(side=tk.RIGHT)
+        
+        # 防止窗口大小调整
+        dialog.resizable(False, False)
+        
+        # 计算居中位置
+        dialog.update_idletasks()  # 更新以获取实际尺寸
+        
+        # 获取主窗口位置和尺寸
+        root_x = self.root.winfo_rootx()
+        root_y = self.root.winfo_rooty()
+        root_width = self.root.winfo_width()
+        root_height = self.root.winfo_height()
+        
+        # 获取对话框尺寸
+        dialog_width = dialog.winfo_width()
+        dialog_height = dialog.winfo_height()
+        
+        # 计算居中位置
+        x = root_x + (root_width - dialog_width) // 2
+        y = root_y + (root_height - dialog_height) // 2
+        
+        # 设置对话框位置
+        dialog.geometry(f"+{x}+{y}")
+        
+        # 焦点到确定按钮
+        ok_button.focus_set()
+        
+        # 等待窗口关闭
+        self.root.wait_window(dialog)
+        
+        # 返回结果
+        if type_ in ["yesno", "okcancel"]:
+            return False  # 默认为False，这里只实现了简单的确定按钮
+        else:
+            return None
+
 def get_tk_class():
     """获取适合的Tk类"""
     # 始终使用标准Tk类
@@ -1466,6 +1550,21 @@ if __name__ == "__main__":
         
         # 设置窗口标题
         root.title("恒昌通工具箱")
+        
+        # 设置窗口大小
+        root.geometry("800x600")
+        
+        # 使窗口居中显示
+        # 获取屏幕宽度和高度
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        
+        # 计算窗口居中的坐标
+        x = (screen_width - 800) // 2
+        y = (screen_height - 600) // 2
+        
+        # 设置窗口位置
+        root.geometry(f"800x600+{x}+{y}")
         
         # 确保主窗口成为活动窗口，掩盖任何其他可能的窗口
         if hasattr(root, 'lift'):
