@@ -26,14 +26,14 @@
 ## 安装说明
 
 ### 方式一：直接下载可执行文件
-1. 从[发布页面](https://github.com/your-repo/hengchangtong-tools/releases)下载最新版本的可执行文件
+1. 从[发布页面](https://github.com/layne-source/hengchangtong-tools/releases)下载最新版本的可执行文件
 2. 解压下载的压缩包
 3. 运行`恒昌通工具箱.exe`即可使用，无需安装
 
 ### 方式二：从源码构建
 1. 克隆或下载本项目源码
 ```
-git clone https://github.com/your-repo/hengchangtong-tools.git
+git clone https://github.com/layne-source/hengchangtong-tools.git
 ```
 
 2. 安装所需依赖
@@ -147,4 +147,4 @@ python build.py
 ## 联系方式
 - 邮箱：support@hengchangtong.com
 - 网站：https://www.hengchangtong.com
-- 问题反馈：https://github.com/your-repo/hengchangtong-tools/issues # hengchangtong-tools
+- 问题反馈：https://github.com/layne-source/hengchangtong-tools/issues # hengchangtong-tools
