@@ -1032,9 +1032,9 @@ class PDFToolbox:
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             
-            # 安全处理文件路径
-            input_file = input_file.strip('"').strip("'")
-            output_dir = output_dir.strip('"').strip("'")
+            # 安全处理文件路径 - 移除引号和空格
+            input_file = input_file.strip('"').strip("'").strip()
+            output_dir = output_dir.strip('"').strip("'").strip()
             
             # 打开视频文件
             video = cv2.VideoCapture(input_file)
@@ -1049,7 +1049,13 @@ class PDFToolbox:
             self.root.update()
             
             # 生成输出文件名的基础部分
-            base_filename = os.path.splitext(os.path.basename(input_file))[0]
+            # 使用ASCII字符替代中文，避免编码问题
+            base_filename_raw = os.path.splitext(os.path.basename(input_file))[0]
+            print(f"原始文件名: {base_filename_raw}")
+            
+            # 所有情况下都使用logo作为基础文件名
+            safe_base_filename = "logo"
+            print(f"使用安全文件名: {safe_base_filename}")
             
             # 开始提取帧
             self.progress_label.config(text="正在提取帧...")
@@ -1078,12 +1084,30 @@ class PDFToolbox:
                     # 调整帧的大小为用户设置的分辨率，使用INTER_AREA提供更好的抗锯齿效果
                     resized_frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
                     
-                    # 生成输出文件名
-                    output_filename = f"{base_filename}_{saved_count:03d}.jpg"
+                    # 生成输出文件名 - 使用纯ASCII文件名避免编码问题
+                    output_filename = f"{safe_base_filename}_{saved_count:03d}.jpg"
                     output_path = os.path.join(output_dir, output_filename)
                     
-                    # 保存帧为图片，使用较高质量但压缩的参数(90%)，平衡质量和文件大小
-                    cv2.imwrite(output_path, resized_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                    # 修复cv2.imwrite处理中文路径的问题
+                    try:
+                        # 直接编码为jpg写入文件
+                        success, buffer = cv2.imencode(".jpg", resized_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                        if success:
+                            with open(output_path, "wb") as f:
+                                f.write(buffer)
+                        else:
+                            raise Exception(f"无法编码图片: {output_path}")
+                    except Exception as e:
+                        # 备用方案 - 使用PIL/Pillow库保存
+                        try:
+                            from PIL import Image
+                            # BGR转RGB
+                            rgb_image = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
+                            img = Image.fromarray(rgb_image)
+                            img.save(output_path, quality=90)
+                        except Exception as e2:
+                            raise Exception(f"保存图片失败: {output_path}, 错误1: {str(e)}, 错误2: {str(e2)}")
+                            
                     output_files.append(output_path)  # 记录输出文件路径
                     saved_count += 1
                 
@@ -1114,6 +1138,11 @@ class PDFToolbox:
                     
                     # 复制所有图片到part0文件夹
                     for i, file_path in enumerate(output_files):
+                        # 确保文件存在
+                        if not os.path.exists(file_path):
+                            print(f"警告：源文件不存在: {file_path}")
+                            continue
+                            
                         # 更新进度显示
                         self.progress_var.set(min(100, int(95 * i / len(output_files))))
                         if i % 10 == 0:  # 不要太频繁更新UI
@@ -1122,15 +1151,26 @@ class PDFToolbox:
                             
                         filename = os.path.basename(file_path)
                         dest_path = os.path.join(part0_dir, filename)
-                        shutil.copy2(file_path, dest_path)
+                        
+                        # 安全复制文件，确保路径正确
+                        try:
+                            shutil.copy2(file_path, dest_path)
+                        except Exception as copy_error:
+                            print(f"复制文件失败: {file_path} -> {dest_path}, 错误: {str(copy_error)}")
                     
                     # 复制最后一张图片到part1文件夹
                     if output_files:
                         last_image = output_files[-1]
-                        last_filename = os.path.basename(last_image)
-                        dest_path = os.path.join(part1_dir, last_filename)
-                        shutil.copy2(last_image, dest_path)
-                        
+                        if os.path.exists(last_image):
+                            last_filename = os.path.basename(last_image)
+                            dest_path = os.path.join(part1_dir, last_filename)
+                            try:
+                                shutil.copy2(last_image, dest_path)
+                            except Exception as copy_error:
+                                print(f"复制最后一张图片失败: {last_image} -> {dest_path}, 错误: {str(copy_error)}")
+                        else:
+                            print(f"警告：最后一张图片不存在: {last_image}")
+                            
                         self.progress_label.config(text="正在复制文件到part1...")
                         self.root.update()
                     
@@ -1148,7 +1188,7 @@ class PDFToolbox:
                     
                     # 写入desc.txt文件
                     desc_file_path = os.path.join(output_dir, "desc.txt")
-                    with open(desc_file_path, 'w') as desc_file:
+                    with open(desc_file_path, 'w', encoding='utf-8') as desc_file:
                         desc_file.write(desc_content)
                     
                     # 删除原始输出的图片
@@ -1157,7 +1197,10 @@ class PDFToolbox:
                     
                     for file_path in output_files:
                         if os.path.exists(file_path):
-                            os.remove(file_path)
+                            try:
+                                os.remove(file_path)
+                            except Exception as rm_error:
+                                print(f"删除文件失败: {file_path}, 错误: {str(rm_error)}")
                     
                     # 创建bootanimation_customer.zip文件
                     self.progress_label.config(text="正在创建bootanimation_customer.zip文件...")
@@ -1196,15 +1239,24 @@ class PDFToolbox:
                         
                         # 删除desc.txt
                         if os.path.exists(desc_file_path):
-                            os.remove(desc_file_path)
+                            try:
+                                os.remove(desc_file_path)
+                            except Exception as rm_error:
+                                print(f"删除desc.txt失败, 错误: {str(rm_error)}")
                         
                         # 删除part0文件夹及其内容
                         if os.path.exists(part0_dir):
-                            shutil.rmtree(part0_dir)
+                            try:
+                                shutil.rmtree(part0_dir)
+                            except Exception as rm_error:
+                                print(f"删除part0文件夹失败, 错误: {str(rm_error)}")
                         
                         # 删除part1文件夹及其内容
                         if os.path.exists(part1_dir):
-                            shutil.rmtree(part1_dir)
+                            try:
+                                shutil.rmtree(part1_dir)
+                            except Exception as rm_error:
+                                print(f"删除part1文件夹失败, 错误: {str(rm_error)}")
                         
                         # 提示完成
                         self.show_message(
